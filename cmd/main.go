@@ -10,6 +10,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var SECRET_KEY string
+
 func main() {
 	r := gin.Default()
 
@@ -18,6 +20,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file!")
 	}
+
+	SECRET_KEY = os.Getenv("SECRET_KEY")
 
 	config := models.Config{
 		Host: os.Getenv("DB_HOST"),
@@ -31,5 +35,6 @@ func main() {
 	models.InitDB(config)
 
 	routes.AuthRoutes(r)
+	routes.UserRoute(r)
 	r.Run(":8000")
 }

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"gin-template/lib/schema"
+	"log"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -19,10 +20,11 @@ func ExtraxtIdFromToken(tokenString string, secret string) (int, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if id, exists := claims["id"]; exists {
-			if idFloat, ok := id.(float64); ok {
-				return int(idFloat), nil
-			}
+		log.Println(claims)
+		if id, err := claims["sub"].(float64); !err {
+			log.Println(id)
+			return int(id), nil
+
 		}
 		return 0, schema.ErrUserNotFound
 	}

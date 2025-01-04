@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"gin-template/internal/models"
+	"strconv"
 	"time"
 
+	"gin-template/lib/schema"
 	"gin-template/lib/utils"
 
 	"github.com/dgrijalva/jwt-go"
@@ -12,11 +14,12 @@ import (
 
 var jwtKey = []byte("my_secret_key")
 
+
 func Login(c *gin.Context) {
 	var user models.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		schema.NewResponse(c, nil, err.Error(), 500)
 		return
 	}
 
@@ -25,14 +28,14 @@ func Login(c *gin.Context) {
 	models.DB.Where("email = ?", user.Email).First(&existingUser)
 
 	if existingUser.ID == 0 {
-		c.JSON(400, gin.H{"error" : "User does not exist"})
+		schema.NewResponse(c, nil, "User does not exist", 404)
 		return
 	}
 
 	errHash := utils.CompareHashPassword(user.Password, existingUser.Password)
 
 	if !errHash {
-		c.JSON(400, gin.H{"error" : "Invalid password!"})
+		schema.NewResponse(c, nil, "Invalid password", 400)
 		return
 	}
 
@@ -40,9 +43,10 @@ func Login(c *gin.Context) {
 
 	claims := &models.Claims{
 		StandardClaims: jwt.StandardClaims{
-			Subject: existingUser.Email,
+			Subject: strconv.Itoa(existingUser.ID),
 			ExpiresAt: expirationTime.Unix(),
 		},
+		Email: existingUser.Email,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -50,11 +54,11 @@ func Login(c *gin.Context) {
 	tokenString, err := token.SignedString(jwtKey)
 
 	if err != nil {
-		c.JSON(500, gin.H{"error" : "Could not generate token", "err" : err.Error()})
+		schema.NewResponse(c, nil, "Could not generate token", 500)
 		return
 	}
 
-	c.JSON(200, gin.H{"success": "user logged in", "token" : tokenString})
+	schema.NewResponse(c, gin.H{"user": existingUser, "token" : tokenString}, "success", 200)
 
 }
 
@@ -63,7 +67,7 @@ func SignUp (c *gin.Context) {
 	var user models.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(400, gin.H{"error" : err.Error()})
+		schema.NewResponse(c, nil, err.Error(), 500)
 		return
 	}
 
@@ -72,7 +76,7 @@ func SignUp (c *gin.Context) {
 	models.DB.Where("email = ?", user.Email).First(&existingUser)
 
 	if existingUser.ID != 0 {
-		c.JSON(400, gin.H{"error" : "user already exist"})
+		schema.NewResponse(c, nil, "User already exist", 422)
 		return
 	}
 
@@ -80,10 +84,11 @@ func SignUp (c *gin.Context) {
 	user.Password, errHash = utils.GenerateHashPassword(user.Password)
 
 	if errHash != nil {
-		c.JSON(500, gin.H{"error" : "Could not generate password hash"})
+		schema.NewResponse(c, nil, "Could not generate password hash", 500)
 		return
 	}
 
 	models.DB.Create(&user)
-	c.JSON(200, gin.H{"success" : "user created", "userId" : user.ID})
+	schema.NewResponse(c, gin.H{"userId" : user.ID}, "success", 201)
+
 }
