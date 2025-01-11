@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"gin-template/internal/models"
+	"gin-template/lib/schema"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,9 +11,21 @@ import (
 func GetUsers(c *gin.Context) {
 	var users []models.User
 
-	if err := models.DB.Find(&users).Error; err != nil {
-		c.JSON(400, gin.H{"error": err})
-	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 
-	c.JSON(200, users)
+	// paginator.PaginatedResult(models.DB.Model(&models.User{}))
+	paginator := schema.NewPaginate(limit, page)
+	metaPage, query := paginator.PaginatedResult(models.DB.Model(&models.User{}))
+	query.Find(&users)
+
+	meta := &schema.Meta{
+		Status: 200,
+		Message: "success",
+		Page: metaPage.Page,
+		Limit: metaPage.Limit,
+		NextPage: metaPage.NextPage,
+	}
+	schema.NewResponse(c, users, meta )
+
 }

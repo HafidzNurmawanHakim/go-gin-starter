@@ -13,14 +13,22 @@ func WithJwtAuth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cookie, err := c.Cookie("access_token")
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, schema.ErrorResponse{Message:"no user"})
+			meta := &schema.Meta{
+				Status: http.StatusUnauthorized,
+				Message: "Invalid token",
+			}
+			schema.NewResponse(c, nil, meta )
 			c.Abort()
 			return
 		}
 		userId, err := utils.ExtraxtIdFromToken(cookie, secret)
 
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, schema.ErrUnauthorized)
+			meta := &schema.Meta{
+				Status: http.StatusUnauthorized,
+				Message: err.Error(),
+			}
+			schema.NewResponse(c, nil, meta)
 			c.Abort()
 			return
 		}

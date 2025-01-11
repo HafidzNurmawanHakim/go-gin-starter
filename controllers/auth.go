@@ -19,23 +19,33 @@ func Login(c *gin.Context) {
 	var user models.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		schema.NewResponse(c, nil, err.Error(), 500)
+		meta := &schema.Meta{
+			Status: 500,
+			Message: err.Error(),
+		}
+		schema.NewResponse(c, nil, meta)
 		return
 	}
 
 	var existingUser models.User
 
 	models.DB.Where("email = ?", user.Email).First(&existingUser)
-
+	meta := &schema.Meta{
+		Status: 404,
+		Message: "User does not exist",
+	}
 	if existingUser.ID == 0 {
-		schema.NewResponse(c, nil, "User does not exist", 404)
+		schema.NewResponse(c, nil, meta)
 		return
 	}
 
 	errHash := utils.CompareHashPassword(user.Password, existingUser.Password)
-
 	if !errHash {
-		schema.NewResponse(c, nil, "Invalid password", 400)
+		meta = &schema.Meta{
+			Status: 400,
+			Message: "Invalid password",
+		}
+		schema.NewResponse(c, nil, meta)
 		return
 	}
 
@@ -54,11 +64,20 @@ func Login(c *gin.Context) {
 	tokenString, err := token.SignedString(jwtKey)
 
 	if err != nil {
-		schema.NewResponse(c, nil, "Could not generate token", 500)
+		meta = &schema.Meta{
+			Status: 500,
+			Message: "Could not generate token",
+		}
+		schema.NewResponse(c, nil, meta)
 		return
 	}
 
-	schema.NewResponse(c, gin.H{"user": existingUser, "token" : tokenString}, "success", 200)
+	meta = &schema.Meta{
+		Status: 200,
+		Message: "success",
+	}
+
+	schema.NewResponse(c, gin.H{"user": existingUser, "token" : tokenString}, meta)
 
 }
 
@@ -67,7 +86,11 @@ func SignUp (c *gin.Context) {
 	var user models.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		schema.NewResponse(c, nil, err.Error(), 500)
+		meta := &schema.Meta{
+			Status: 500,
+			Message: err.Error(),
+		}
+		schema.NewResponse(c, nil, meta)
 		return
 	}
 
@@ -76,7 +99,11 @@ func SignUp (c *gin.Context) {
 	models.DB.Where("email = ?", user.Email).First(&existingUser)
 
 	if existingUser.ID != 0 {
-		schema.NewResponse(c, nil, "User already exist", 422)
+		meta := &schema.Meta{
+			Status: 422,
+			Message: "User already exist",
+		}
+		schema.NewResponse(c, nil, meta)
 		return
 	}
 
@@ -84,11 +111,19 @@ func SignUp (c *gin.Context) {
 	user.Password, errHash = utils.GenerateHashPassword(user.Password)
 
 	if errHash != nil {
-		schema.NewResponse(c, nil, "Could not generate password hash", 500)
+		meta := &schema.Meta{
+			Status: 500,
+			Message: "Could not generate password hash",
+		}
+		schema.NewResponse(c, nil, meta)
 		return
 	}
 
 	models.DB.Create(&user)
-	schema.NewResponse(c, gin.H{"userId" : user.ID}, "success", 201)
+	meta := &schema.Meta{
+		Status: 201,
+		Message: "success",
+	}
+	schema.NewResponse(c, gin.H{"userId" : user.ID}, meta)
 
 }
