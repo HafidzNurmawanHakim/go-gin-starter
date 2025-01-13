@@ -2,13 +2,12 @@ package controllers
 
 import (
 	"gin-template/internal/models"
-	"strconv"
+	"net/http"
 	"time"
 
 	"gin-template/lib/schema"
 	"gin-template/lib/utils"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -49,24 +48,25 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	expirationTime := time.Now().Add(5 * time.Minute)
+	tokenExpTime := time.Now().Add(5 * time.Minute)
+	refreshExpTime := time.Now().Add(7 * 24 * time.Hour)
 
-	claims := &models.Claims{
-		StandardClaims: jwt.StandardClaims{
-			Subject: strconv.Itoa(existingUser.ID),
-			ExpiresAt: expirationTime.Unix(),
-		},
-		Email: existingUser.Email,
+	token, err := utils.GenerateToken(&existingUser, string(jwtKey), tokenExpTime)
+	refreshToken, err := utils.GenerateToken(&existingUser, string(jwtKey), refreshExpTime)
+
+	if err != nil {
+		meta := &schema.Meta{
+			Status: http.StatusInternalServerError,
+			Message: "Could not generate token",
+		}
+		schema.NewResponse(c, nil, meta)
+		return
 	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	tokenString, err := token.SignedString(jwtKey)
 
 	if err != nil {
 		meta = &schema.Meta{
 			Status: 500,
-			Message: "Could not generate token",
+			Message: "Could not generate refresh token",
 		}
 		schema.NewResponse(c, nil, meta)
 		return
@@ -77,7 +77,7 @@ func Login(c *gin.Context) {
 		Message: "success",
 	}
 
-	schema.NewResponse(c, gin.H{"user": existingUser, "token" : tokenString}, meta)
+	schema.NewResponse(c, gin.H{"user": existingUser, "token" : gin.H{"access_token": token, "refresh_token" : refreshToken}}, meta)
 
 }
 
