@@ -52,7 +52,6 @@ func Login(c *gin.Context) {
 	refreshExpTime := time.Now().Add(7 * 24 * time.Hour)
 
 	token, err := utils.GenerateToken(&existingUser, string(jwtKey), tokenExpTime)
-	refreshToken, err := utils.GenerateToken(&existingUser, string(jwtKey), refreshExpTime)
 
 	if err != nil {
 		meta := &schema.Meta{
@@ -62,6 +61,7 @@ func Login(c *gin.Context) {
 		schema.NewResponse(c, nil, meta)
 		return
 	}
+	refreshToken, err := utils.GenerateToken(&existingUser, string(jwtKey), refreshExpTime)
 
 	if err != nil {
 		meta = &schema.Meta{
@@ -125,5 +125,75 @@ func SignUp (c *gin.Context) {
 		Message: "success",
 	}
 	schema.NewResponse(c, gin.H{"userId" : user.ID}, meta)
+
+}
+
+
+func RefreshToken(c *gin.Context) {
+	var user models.User
+	refresh_token, err := c.Cookie("refresh_token")
+
+	if err != nil {
+		meta := &schema.Meta{
+			Status: http.StatusUnauthorized,
+			Message: "Refresh Token is required!",
+		}
+		schema.NewResponse(c, nil, meta)
+		return
+	}
+
+	userId, err := utils.ExtraxtIdFromToken(refresh_token, string(jwtKey))
+
+	if err != nil {
+		meta := &schema.Meta{
+			Status: http.StatusUnauthorized,
+			Message: err.Error(),
+		}
+		schema.NewResponse(c, nil, meta)
+		return
+	}
+
+	models.DB.Where("ID = ?", userId).First(&user)
+
+	if user.ID == 0 {
+		meta := &schema.Meta{
+			Status: 404,
+			Message: "User not found",
+		}
+		schema.NewResponse(c, nil, meta)
+		return
+	}
+
+	tokenExpTime := time.Now().Add(5 * time.Minute)
+	refreshExpTime := time.Now().Add(7 * 24 * time.Hour)
+
+
+	token, err := utils.GenerateToken(&user, string(jwtKey), tokenExpTime)
+
+	if err != nil {
+		meta := &schema.Meta{
+			Status: http.StatusInternalServerError,
+			Message: "Could not generate token",
+		}
+		schema.NewResponse(c, nil, meta)
+		return
+	}
+	refreshToken, err := utils.GenerateToken(&user, string(jwtKey), refreshExpTime)
+
+	if err != nil {
+		meta := &schema.Meta{
+			Status: http.StatusInternalServerError,
+			Message: "Could not generate refresh token",
+		}
+		schema.NewResponse(c, nil, meta)
+		return
+	}
+
+	meta := &schema.Meta{
+		Status: 200,
+		Message: "success",
+	}
+
+	schema.NewResponse(c, gin.H{ "token": gin.H{ "token" : token, "access_token" : refreshToken}}, meta )
 
 }
