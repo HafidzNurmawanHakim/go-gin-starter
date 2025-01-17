@@ -25,3 +25,12 @@ go run ./cmd/main.go migrate
 #4
 go run ./cmd/main.go
 ```
+
+# With Docker
+
+```bash
+#1
+docker build -t yourappname .
+#2
+docker run -p 8080:8080 yourappname
+```
