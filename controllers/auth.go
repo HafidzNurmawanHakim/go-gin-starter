@@ -119,6 +119,19 @@ func SignUp (c *gin.Context) {
 		return
 	}
 
+	if user.RoleID == 0 {
+		var defaultRole models.Role
+		if err := models.DB.Where("name = ?", "staff").First(&defaultRole).Error; err != nil {
+			meta := &schema.Meta{
+				Status: 500,
+				Message: err.Error(),
+			}
+			schema.NewResponse(c, nil, meta)
+			return 
+		}
+		user.RoleID = defaultRole.ID
+	}
+
 	models.DB.Create(&user)
 	meta := &schema.Meta{
 		Status: 201,

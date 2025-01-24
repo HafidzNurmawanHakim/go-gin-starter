@@ -8,11 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UserRoute(r *gin.Engine) {
-
-	protected := r.Group("/users")
+func Role(r *gin.Engine) {
+	protected := r.Group("/roles")
 	protected.Use(middlewares.WithJwtAuth(os.Getenv("SECRET_KEY")))
 	{
-		protected.GET("", controllers.GetUsers)
+		protected.GET("", controllers.GetRoles)
 	}
 }

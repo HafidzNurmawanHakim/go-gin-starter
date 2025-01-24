@@ -1,4 +1,27 @@
 {
   "go.buildFlags": ["-tags=functional"],
-  "go.testTags": "functional"
+  "go.testTags": "functional",
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "legacy-hrm",
+      "database": "first_db",
+      "username": "postgres",
+      "password": "postres"
+    },
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "first_db",
+      "database": "first_db",
+      "username": "postgres",
+      "password": "postgres"
+    }
+  ],
+  "dbcode.connections": []
 }

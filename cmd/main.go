@@ -36,5 +36,7 @@ func main() {
 
 	routes.AuthRoutes(r)
 	routes.UserRoute(r)
+	routes.Role(r)
+
 	r.Run(":8000")
 }

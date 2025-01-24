@@ -27,9 +27,10 @@ func InitDB(cfg Config) {
 		panic(err)
 	}
 
-	if  err := db.AutoMigrate(&User{}); err != nil {
+	if  err := db.AutoMigrate(&User{}, &Role{}); err != nil {
 		panic(err)
 	}
+
 
 	fmt.Println("Migrated Database!")
 
